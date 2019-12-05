@@ -15,8 +15,6 @@ limitations under the License.
 */
 package app.intra.net.go;
 
-import android.annotation.TargetApi;
-import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import androidx.annotation.NonNull;
@@ -33,6 +31,7 @@ import app.intra.sys.firebase.RemoteConfig;
 import doh.Transport;
 import java.io.IOException;
 import java.util.Locale;
+import protect.Protect;
 import tun2socks.Tun2socks;
 import tunnel.IntraTunnel;
 
@@ -86,6 +85,7 @@ public class GoVpnAdapter extends VpnAdapter {
     if (tunFd == null) {
       return null;
     }
+
     return new GoVpnAdapter(vpnService, tunFd, resolver);
   }
 
@@ -123,7 +123,7 @@ public class GoVpnAdapter extends VpnAdapter {
     try {
       LogWrapper.log(Log.INFO, LOG_TAG, "Starting go-tun2socks");
       final IntraTunnel t = Tun2socks.connectIntraTunnel(tunFd.getFd(), fakeDns, trueDns, trueDns,
-          transport, listener);
+          transport, vpnService, listener);
       tunnel = t;
 
       new Thread(() -> {
@@ -139,7 +139,6 @@ public class GoVpnAdapter extends VpnAdapter {
     }
   }
 
-  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
   private static ParcelFileDescriptor establishVpn(IntraVpnService vpnService) {
     try {
       return vpnService.newBuilder()
@@ -148,7 +147,6 @@ public class GoVpnAdapter extends VpnAdapter {
           .addAddress(LanIp.GATEWAY.make(IPV4_TEMPLATE), IPV4_PREFIX_LENGTH)
           .addRoute("0.0.0.0", 0)
           .addDnsServer(LanIp.DNS.make(IPV4_TEMPLATE))
-          .addDisallowedApplication(vpnService.getPackageName())
           .establish();
     } catch (Exception e) {
       LogWrapper.logException(e);
@@ -174,7 +172,7 @@ public class GoVpnAdapter extends VpnAdapter {
   private doh.Transport makeDohTransport(@Nullable String url) throws Exception {
     @NonNull String realUrl = PersistentState.expandUrl(vpnService, url);
     String dohIPs = ServerConnectionFactory.getIpString(vpnService, realUrl);
-    return Tun2socks.newDoHTransport(realUrl, dohIPs, listener);
+    return Tun2socks.newDoHTransport(realUrl, dohIPs, vpnService, listener);
   }
 
   /**

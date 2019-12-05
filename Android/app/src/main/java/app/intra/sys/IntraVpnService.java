@@ -45,11 +45,13 @@ import app.intra.net.split.SplitVpnAdapter;
 import app.intra.sys.firebase.AnalyticsWrapper;
 import app.intra.sys.NetworkManager.NetworkListener;
 import app.intra.sys.firebase.LogWrapper;
+import app.intra.sys.firebase.RemoteConfig;
 import app.intra.ui.MainActivity;
 import java.util.Calendar;
+import protect.Protector;
 
 public class IntraVpnService extends VpnService implements NetworkListener,
-    SharedPreferences.OnSharedPreferenceChangeListener {
+    SharedPreferences.OnSharedPreferenceChangeListener, Protector {
 
   private static final String LOG_TAG = "IntraVpnService";
   private static final int SERVICE_ID = 1; // Only has to be unique within this app.
@@ -122,7 +124,6 @@ public class IntraVpnService extends VpnService implements NetworkListener,
     // Registers this class as a listener for user preference changes.
     PreferenceManager.getDefaultSharedPreferences(this).
         registerOnSharedPreferenceChangeListener(this);
-
 
     if (networkManager != null) {
       spawnServerUpdate();
@@ -362,15 +363,12 @@ public class IntraVpnService extends VpnService implements NetworkListener,
     // split-tunnel configuration) does not.  Therefore, on M and later, we have to use
     // GoVpnAdapter.  Additionally, M and later also exhibit DownloadManager bugs when used
     // with a split-tunnel VPN.
-    // TODO: Use GoVpnAdapter on older versions once we have a way to "protect" (i.e. exclude
-    //   from the VPN) the DOH sockets.
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    if (true || Build.VERSION.SDK_INT >= Build.VERSION_CODES.M || RemoteConfig.forceGoMode()) {
       return GoVpnAdapter.establish(this);
     }
-    // Pre-M we prefer SplitVpnAdapter, which uses much less CPU and RAM (important for older
-    // devices).  This is also necessary because SocksVpnAdapter relies on VpnService.Builder
-    // .addDisallowedApplication(this) to bypass its own VPN, and this method is only available in
-    // Lollipop and later.
+    // Pre-M we currently prefer SplitVpnAdapter, which uses much less CPU and RAM, but offers
+    // reduced functionality.  (OkHttp on Android 4 is also incompatible with many DoH servers
+    // because it lacks support for TLS 1.2.)
     return SplitVpnAdapter.establish(this);
   }
 

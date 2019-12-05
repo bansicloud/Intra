@@ -37,7 +37,7 @@ public class GoProber extends Prober {
     new Thread(() -> {
       String dohIPs = ServerConnectionFactory.getIpString(context, url);
       try {
-        Transport transport = Tun2socks.newDoHTransport(url, dohIPs, null);
+        Transport transport = Tun2socks.newDoHTransport(url, dohIPs, null, null);
         if (transport == null) {
           callback.onCompleted(false);
           return;

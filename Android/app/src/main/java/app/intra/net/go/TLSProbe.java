@@ -23,6 +23,7 @@ import java.net.URL;
 import javax.net.ssl.SSLHandshakeException;
 
 // Static utility to check whether the user's connection supports standard TLS sockets.
+// TODO: Deprecate this probe or rewrite it in Go.
 class TLSProbe {
   enum Result {SUCCESS, TLS_FAILED, OTHER_FAILED}
   private static Result probe(String target) {
